@@ -1,0 +1,54 @@
+#!/bin/bash
+#PBS -N dl_models
+#PBS -P 20260209
+#PBS -l select=1:ncpus=8:ngpus=1:mem=32gb
+#PBS -l walltime=03:00:00
+#PBS -q v100q
+#PBS -j oe
+#PBS -o dl_models.log
+
+# Download the remaining sweep base models DIRECTLY on a GPU compute node (per AIMC admin Minh, 30 Sep):
+# login node has no modelscope/pip/internet; compute nodes do, and ~/scratch has space.
+# Builds a venv in ~/scratch, installs modelscope, downloads each model straight to ~/models/<tag>.
+# Idempotent: skips any model that already has safetensors in ~/models/<tag>.
+echo "=== download base models ==="
+echo "node: $(hostname)"; echo "started: $(date)"
+cd $PBS_O_WORKDIR
+
+# venv in scratch (large storage), so home quota and container are untouched
+if [ ! -d ~/scratch/dlenv ]; then python3 -m venv ~/scratch/dlenv; fi
+source ~/scratch/dlenv/bin/activate
+pip install -q -U pip modelscope
+
+python - <<'PY'
+from modelscope import snapshot_download
+import os
+ign = ['original/.*', r'.*\.pth', r'.*\.gguf', r'.*\.bin']
+jobs = {
+    'llama8b':   'LLM-Research/Meta-Llama-3.1-8B-Instruct',
+    'llama3b':   'LLM-Research/Llama-3.2-3B-Instruct',
+    'mistral7b': 'LLM-Research/Mistral-7B-Instruct-v0.3',
+}
+import json
+def is_complete(dst):
+    # complete only if every shard named in the index is present and non-empty
+    idx = os.path.join(dst, 'model.safetensors.index.json')
+    if os.path.isfile(idx):
+        shards = set(json.load(open(idx))['weight_map'].values())
+        return all(os.path.getsize(os.path.join(dst, s)) > 0 for s in shards if os.path.exists(os.path.join(dst, s))) \
+               and all(os.path.exists(os.path.join(dst, s)) for s in shards)
+    # single-file model
+    return os.path.isfile(os.path.join(dst, 'model.safetensors'))
+
+for tag, mid in jobs.items():
+    dst = os.path.expanduser(f'~/models/{tag}')
+    if is_complete(dst):
+        print(f'[{tag}] already complete in {dst} -- skip', flush=True); continue
+    print(f'[{tag}] downloading/resuming {mid} -> {dst}', flush=True)
+    os.makedirs(dst, exist_ok=True)
+    # snapshot_download verifies existing files and only fetches missing/incomplete ones (safe to re-run)
+    snapshot_download(mid, local_dir=dst, ignore_file_pattern=ign)
+    sfs = [f for f in os.listdir(dst) if f.endswith('.safetensors')]
+    print(f'[{tag}] done. complete={is_complete(dst)}. safetensors: {sfs}', flush=True)
+PY
+echo "finished: $(date)"

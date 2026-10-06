@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N aml_sft_qwen7b
+#PBS -P 20260209
+#PBS -l select=1:ncpus=8:ngpus=1:mem=96gb
+#PBS -l walltime=24:00:00
+#PBS -q a100q
+#PBS -j oe
+#PBS -o aml_sft_qwen7b.log
+
+# AML SFT — LoRA fine-tune Qwen2.5-7B-Instruct. Uses the SG-LegalCite stack (transformers/peft/accelerate only).
+# NO trl / datasets -> does not upgrade the container's torch -> transformer_engine stays intact.
+echo "=== AML SFT (Qwen2.5-7B-Instruct, LoRA) ==="
+echo "Started: $(date)"
+cd $PBS_O_WORKDIR
+nvidia-smi --query-gpu=index,name,memory.total --format=csv
+
+singularity exec --nv /app/singularity/images/pytorch_24.06-py3.sif bash -c "
+  pip install -q --user --no-deps transformers==4.44.2 peft==0.12.0 accelerate==0.33.0 2>/dev/null || true;
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 &&
+  export BASE_MODEL=\$HOME/.cache/modelscope/hub/models/Qwen/Qwen2___5-7B-Instruct &&
+  export TRAIN_FILE=aml90_sft_train.jsonl VAL_FILE=aml90_sft_val.jsonl OUT_DIR=aml90_qwen7b_lora &&
+  export MAX_SEQ=1536 BSZ=4 GRAD_ACCUM=4 EPOCHS=3 LR=2e-4 &&
+  python train_aml_sft.py"
+
+echo "Finished: $(date)"

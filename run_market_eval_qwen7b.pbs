@@ -1,0 +1,28 @@
+#!/bin/bash
+#PBS -N market_eval_qwen7b
+#PBS -P 20260209
+#PBS -l select=1:ncpus=8:ngpus=1:mem=96gb
+#PBS -l walltime=10:00:00
+#PBS -q a100q
+#PBS -j oe
+#PBS -o market_eval_qwen7b.log
+
+# MARKET two-way eval for Qwen2.5-7B: base vs LoRA over the 100 originals (75 seen + 25 unseen). eval_market_2way.py.
+echo "=== MARKET two-way eval Qwen2.5-7B (base + LoRA) ==="
+echo "Started: $(date)"
+cd $PBS_O_WORKDIR
+nvidia-smi --query-gpu=index,name,memory.total --format=csv
+
+singularity exec --nv /app/singularity/images/pytorch_24.06-py3.sif bash -c "
+  pip install -q --no-deps --target=\$HOME/scratch/pkg_market_qwen7b transformers==4.44.2 peft==0.12.0 accelerate==0.33.0 2>/dev/null || true;
+  export PYTHONPATH=\$HOME/scratch/pkg_market_qwen7b:\$PYTHONPATH &&
+  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 &&
+  export BASE_MODEL=\$HOME/.cache/modelscope/hub/models/Qwen/Qwen2___5-7B-Instruct &&
+  export LORA_DIR=market75_qwen7b_lora/best_lora &&
+  export MAX_NEW=1024 &&
+  echo '--- BASE qwen7b pass ---' &&
+  USE_LORA=0 OUT_CSV=market75_2way_qwen7b_BASE_answers.csv python eval_market_2way.py &&
+  echo '--- LoRA qwen7b pass ---' &&
+  USE_LORA=1 OUT_CSV=market75_2way_qwen7b_LORA_answers.csv python eval_market_2way.py"
+
+echo "Finished: $(date)"
