@@ -104,7 +104,7 @@ def ask(client, model, system, user):
     return best or last
 
 FIELDS=["mid","seed_id","family","axis","typology","violation_story","violation_rubric","twin_story","twin_rubric",
-        "generator","dup_ratio","flags","daniel_validation"]
+        "generator","dup_ratio","flags","expert_validation"]
 
 def parse(text):
     def grab(a,b):
@@ -164,7 +164,7 @@ def gen_row(client, model, job, intra_others=None):
     row={"mid":mid,"seed_id":job["seed"]["id"],"family":fam or job["seed"]["family"],"axis":job["axis"],
          "typology":typ or job["seed"]["typology"],"violation_story":vs,"violation_rubric":vr,
          "twin_story":ts,"twin_rubric":tr,"generator":model,"dup_ratio":dr,"flags":";".join(flags),
-         "daniel_validation":""}
+         "expert_validation":""}
     return row, flags
 
 def clean_flagged(client, model, out):
@@ -234,9 +234,9 @@ def main():
     sn=int(os.environ.get("SC_SAMPLE","0"))
     if sn>0:
         good=[r for r in rows if not r.get("flags")]; step=max(1,len(good)//sn); samp=good[::step][:sn]
-        sp=os.path.join(outdir, os.environ.get("SC_SAMPLE_OUT","AML90_scaled_DANIEL_sample20.csv"))
+        sp=os.path.join(outdir, os.environ.get("SC_SAMPLE_OUT","AML90_scaled_expert_sample20.csv"))
         with open(sp,"w",newline="",encoding="utf-8") as f:
             w=csv.DictWriter(f,fieldnames=FIELDS); w.writeheader(); w.writerows(samp)
-        print(f"[sample] wrote {len(samp)} rows for Daniel spot-check -> {sp}")
+        print(f"[sample] wrote {len(samp)} rows for expert spot-check -> {sp}")
 
 if __name__=="__main__": main()
