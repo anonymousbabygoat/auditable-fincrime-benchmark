@@ -4,7 +4,7 @@ Code for a matched-twin benchmark of **auditable explanations** across anti-mone
 
 *Anonymous repository for peer review. It contains no real customer, transaction, or account data; every scenario is synthetic.*
 
-The dataset (10,057 matched pairs = 20,114 scenarios, plus expert seeds) is released separately: **`<HF_DATASET_URL>`**.
+The dataset (10,057 matched pairs = 20,114 scenarios, plus expert seeds) is released separately: **https://huggingface.co/datasets/Anonymousbabygoat/auditable-fincrime-benchmark**.
 
 ## Pipeline
 
