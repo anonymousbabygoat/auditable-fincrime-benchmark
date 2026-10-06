@@ -29,7 +29,7 @@ The dataset (10,057 matched pairs = 20,114 scenarios, plus expert seeds) is rele
 
 5. **Grading.** Each reasoning element is graded in its own call by a judge model (Claude Sonnet 5), with the decision checked directly against the answer key; a scenario is *fully correct* only when all three reasoning elements pass and the decision is right. *(Per-element grader script to be added.)*
 
-6. **Prompting frontier models + APO.** An innocent-first prompt (Contrast in AML, Innocent-Hypothesis-First in market abuse) builds the innocent twin before naming the distinguishing facts; automatic prompt optimization (DSPy MIPROv2) is run from a bare seed as a comparison. *(APO scripts to be added.)*
+6. **Prompting frontier models + APO.** An innocent-first prompt (Contrast in AML, Innocent-Hypothesis-First in market abuse) builds the innocent twin before naming the distinguishing facts; automatic prompt optimization (DSPy MIPROv2) is run from a bare seed as a comparison (`dspy_apo_aml.py`, `dspy_apo_market.py`).
 
 ## Contents
 
@@ -39,6 +39,7 @@ The dataset (10,057 matched pairs = 20,114 scenarios, plus expert seeds) is rele
 | `seeds_aml.json`, `seeds_market.json` | Expert seed pairs (with train/held-out split) |
 | `train_aml_sft.py`, `train_market_sft.py` | LoRA SFT |
 | `eval_aml90_2way.py`, `eval_market_2way.py` | Two-way held-out evaluation |
+| `dspy_apo_aml.py`, `dspy_apo_market.py` | Automatic prompt optimization (DSPy MIPROv2); load `apo_bundle_*`/`apo_rubrics_*` |
 | `run_*.pbs`, `download_models.pbs` | Cluster launchers (representative) |
 
 ## Requirements
